@@ -3,6 +3,7 @@
   import { Modal } from 'flowbite-svelte';
   import { Bar } from 'svelte5-chartjs';
   import { Chart as ChartJS, registerables } from 'chart.js';
+  import { API_INAS_URL } from '../lib/constants';
 
   ChartJS.register(...registerables);
 
@@ -39,7 +40,7 @@
     loading = true;
     error = null;
     try {
-      const response = await fetch(`https://app.iedeoccidente.com/get_student_absences.php`, {
+      const response = await fetch(API_INAS_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
