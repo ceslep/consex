@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { excuseStore, fetchData, headerMap, getHeaders, activeFilters, clearFilters, filteredDataStore } from '../lib/store'; // Import from store
+  import { excuseStore, fetchData, headerMap, getHeaders, activeFilters, clearFilters, filteredDataStore, studentDetailsModalOpen, selectedStudentId, selectedStudentName } from '../lib/store'; // Import from store
 
   import { Filter } from 'carbon-icons-svelte';
 
@@ -143,7 +143,14 @@
           {#each filteredData as row, index (index)} <!-- Changed key to index -->
             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
               {#each headers as header}
-                <td class="py-4 {header === 'grado' ? 'text-center' : ''}">
+                <td class="py-4 {header === 'grado' ? 'text-center' : ''} {header === 'student_name' ? 'cursor-pointer text-blue-600 hover:underline' : ''}"
+                  on:click={() => {
+                    if (header === 'student_name') {
+                      selectedStudentId.set(row.estudiante);
+                      selectedStudentName.set(row.student_name);
+                      studentDetailsModalOpen.set(true);
+                    }
+                  }}>
                   {row[header as keyof ExcuseData]}
                 </td>
               {/each}

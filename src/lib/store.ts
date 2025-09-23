@@ -37,6 +37,12 @@ export const activeFilters = writable<Record<string, string[]>>({
 // Store for filtered data to be exported
 export const filteredDataStore = writable<ExcuseData[]>([]);
 
+export const chartsModalOpen = writable(false);
+
+export const studentDetailsModalOpen = writable(false);
+export const selectedStudentId = writable<number | null>(null);
+export const selectedStudentName = writable<string | null>(null);
+
 export function clearFilters() {
   activeFilters.set({
     estudiante: [],
