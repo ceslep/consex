@@ -23,10 +23,17 @@
   let openModal = false;
   let currentFilterHeader: string | null = null;
   let tempActiveFilterValues: string[] = [];
+  let searchTerm: string = ''; // New state for search input
 
   function openFilterModal(header: string) {
     currentFilterHeader = header;
     tempActiveFilterValues = [...$activeFilters[header]]; // Copy current active filters
+    // Initialize searchTerm based on active filters for the current header
+    if (tempActiveFilterValues.length === 1) {
+      searchTerm = tempActiveFilterValues[0];
+    } else {
+      searchTerm = '';
+    }
     openModal = true;
   }
 
@@ -92,13 +99,26 @@
 
   // Update filter options when store data changes
   $: if ($excuseStore.data) {
-    filterOptions.estudiante = [...new Set($excuseStore.data.map(d => String(d.estudiante).trim()))].map(value => ({ value, name: value }));
-    filterOptions.student_name = [...new Set($excuseStore.data.map(d => d.student_name.trim()))].map(value => ({ value, name: value }));
-    filterOptions.grado = [...new Set($excuseStore.data.map(d => d.grado.trim()))].map(value => ({ value, name: value }));
-    filterOptions.campus_name = [...new Set($excuseStore.data.map(d => d.campus_name.trim()))].map(value => ({ value, name: value }));
-    filterOptions.excuse_date = [...new Set($excuseStore.data.map(d => d.excuse_date.trim()))].map(value => ({ value, name: value }));
-    filterOptions.excuse_motive = [...new Set($excuseStore.data.map(d => d.excuse_motive.trim()))].map(value => ({ value, name: value }));
+    const headersToProcess = ['estudiante', 'student_name', 'grado', 'campus_name', 'excuse_motive'];
+    const dateHeader = 'excuse_date';
+
+    headersToProcess.forEach(header => {
+      filterOptions[header] = [...new Set($excuseStore.data.map(d => String(d[header as keyof ExcuseData]).trim()))]
+        .map(value => ({ value, name: value }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    // For excuse_date, just map without sorting
+    filterOptions[dateHeader] = [...new Set($excuseStore.data.map(d => String(d[dateHeader as keyof ExcuseData]).trim()))]
+      .map(value => ({ value, name: value }));
   }
+
+  // Reactive filtered options for the modal
+  $: filteredFilterOptions = currentFilterHeader && filterOptions[currentFilterHeader]
+    ? filterOptions[currentFilterHeader].filter(option =>
+        option.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   onMount(() => {
     fetchData(); // Initial fetch using store action
@@ -182,12 +202,18 @@
             <h3 class="mb-5 text-lg font-normal text-gray-800 dark:text-gray-200">
               Filtrar por {headerMap[currentFilterHeader as keyof ExcuseData]}
             </h3>
+            <input
+              type="text"
+              bind:value={searchTerm}
+              placeholder="Buscar..."
+              class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white mb-4"
+            />
             <select
               multiple
               bind:value={tempActiveFilterValues}
               class="block w-full pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white h-48 mb-4"
             >
-              {#each filterOptions[currentFilterHeader] as option}
+              {#each filteredFilterOptions as option}
                 <option value={option.value}>{option.name}</option>
               {/each}
             </select>

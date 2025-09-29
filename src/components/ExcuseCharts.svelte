@@ -1,6 +1,8 @@
 <script lang="ts">
   import { filteredDataStore, chartsModalOpen, headerMap, getHeaders } from '../lib/store';
-  import { Bar } from 'svelte5-chartjs';
+  import { Bar, Line } from 'svelte5-chartjs';
+  import ExcuseDistributionCharts from './ExcuseDistributionCharts.svelte';
+  import ExcuseHeatmap from './ExcuseHeatmap.svelte';
   import { Chart, registerables } from 'chart.js';
 
   Chart.register(...registerables);
@@ -27,14 +29,41 @@
     ],
   };
 
+  let timeSeriesChartData: { labels: string[]; datasets: { label: string; data: number[]; borderColor: string; fill: boolean }[] } = {
+    labels: [],
+    datasets: [
+      {
+        label: 'Excusas por Mes',
+        data: [],
+        borderColor: 'rgb(75, 192, 192)',
+        fill: false,
+      },
+    ],
+  };
+
   $: if ($filteredDataStore) {
     const motiveCounts: { [key: string]: number } = {};
+    const monthlyCounts: { [key: string]: number } = {};
+
     $filteredDataStore.forEach(excuse => {
       motiveCounts[excuse.excuse_motive] = (motiveCounts[excuse.excuse_motive] || 0) + 1;
+
+      const date = new Date(excuse.excuse_date);
+      const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+      monthlyCounts[monthYear] = (monthlyCounts[monthYear] || 0) + 1;
     });
 
     chartData.labels = Object.keys(motiveCounts);
     chartData.datasets[0].data = Object.values(motiveCounts);
+
+    // Sort monthly data by date
+    const sortedMonths = Object.keys(monthlyCounts).sort();
+    timeSeriesChartData.labels = sortedMonths.map(monthYear => {
+      const [year, month] = monthYear.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1);
+      return date.toLocaleString('es-ES', { month: 'short', year: 'numeric' });
+    });
+    timeSeriesChartData.datasets[0].data = sortedMonths.map(monthYear => monthlyCounts[monthYear]);
   }
 
   function closeModal() {
@@ -70,6 +99,15 @@
           <p class="text-center text-gray-700 dark:text-gray-300">No hay datos para mostrar el gráfico.</p>
         {/if}
 
+        <h3 class="mb-5 text-lg font-normal text-gray-800 dark:text-gray-200">Excusas por Mes</h3>
+        {#if timeSeriesChartData.labels.length > 0}
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
+            <Line data={timeSeriesChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+          </div>
+        {:else}
+          <p class="text-center text-gray-700 dark:text-gray-300">No hay datos para mostrar el gráfico de tiempo.</p>
+        {/if}
+
         <h3 class="mb-5 text-lg font-normal text-gray-800 dark:text-gray-200">Detalle Consolidado de Motivos</h3>
         {#if chartData.labels.length > 0}
           <div class="overflow-x-auto shadow-md sm:rounded-lg mb-6">
@@ -93,6 +131,10 @@
         {:else}
           <p class="text-center text-gray-700 dark:text-gray-300">No hay datos para mostrar en la tabla.</p>
         {/if}
+
+        <ExcuseDistributionCharts />
+
+        <ExcuseHeatmap />
 
         <div class="items-center px-4 py-3">
           <button
